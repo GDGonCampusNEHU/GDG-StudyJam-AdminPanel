@@ -33,6 +33,7 @@ def normalize_name(name):
     """Creates a standardized, simplified version of a name for robust matching."""
     s = str(name).lower()
     s = s.replace('[skill badge]', '').strip()
+    s = s.replace('game]', '').strip()
     s = s.replace('gen ai', 'genai')
     s = re.sub(r'[^a-z0-9]+', '_', s)
     s = s.strip('_')
@@ -89,7 +90,7 @@ def upload_file():
             for index, row in df.iterrows():
                 user_name_raw = row.get('User Name')
                 email_raw = row.get('User Email')
-                completed_labs_str = row.get('Names of Completed Skill Badges')
+                completed_labs_str = str(row.get('Names of Completed Skill Badges'))+" | "+str(row.get('Names of Completed Arcade Games'))
                 print(user_name_raw,completed_labs_str,"\n")
 
                 if pd.notna(email_raw):
