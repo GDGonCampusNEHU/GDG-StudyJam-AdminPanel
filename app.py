@@ -90,9 +90,11 @@ def upload_file():
                 user_name_raw = row.get('User Name')
                 email_raw = row.get('User Email')
                 completed_labs_str = row.get('Names of Completed Skill Badges')
+                print(user_name_raw,completed_labs_str,"\n")
 
                 if pd.notna(email_raw):
-                    email = str(email_raw).strip().lower()
+                    email = str(email_raw).strip()
+                    print("email: ",email,"\n")
                     user_name = str(user_name_raw).strip() if pd.notna(user_name_raw) else email
 
                     if pd.notna(completed_labs_str) and str(completed_labs_str).strip():
@@ -100,10 +102,12 @@ def upload_file():
                         
                         update_data = {}
                         for lab_name in completed_labs:
-                            if not lab_name: continue
+                            if not lab_name: 
+                                continue
                             
                             normalized_lab = normalize_name(lab_name)
                             original_column_name = column_map.get(normalized_lab)
+                            
 
                             if original_column_name:
                                 update_data[original_column_name] = "Yes"
@@ -112,19 +116,18 @@ def upload_file():
 
                         if update_data:
                             try:
-                                user_query = supabase.table(TABLE_NAME).select('email').eq('email', email).execute()
-                                if not user_query.data:
-                                    not_found_log.append(f"Participant '{user_name}' ({email}) not found. Skipping.")
-                                    continue
+                               response = supabase.table(TABLE_NAME).update(update_data).eq('email', email).execute()
+                               data = response.data
+                               print("update for: ",data[0]["name"])
+                               count = response.count
 
-                                data, count = supabase.table(TABLE_NAME).update(update_data).eq('email', email).execute()
-                                
-                                if count is not None and count > 0: 
+                                # This check now works, comparing int > int
+                               if count is not None and count > 0: 
                                     num_labs_updated = len(update_data)
                                     total_updates += num_labs_updated
                                     updated_labs_list = list(update_data.keys())
                                     update_log.append(f"Updated {num_labs_updated} labs for '{user_name}': {', '.join(updated_labs_list)}.")
-                                else:
+                               else:
                                     update_log.append(f"No new updates for '{user_name}' (data may already be current).")
 
                             except Exception as e:
@@ -135,6 +138,7 @@ def upload_file():
                 "users_not_found": not_found_log,
                 "mismatched_lab_names": sorted(list(mismatched_labs_log))
             }
+            print(final_log["updates"])
             success_message = f"Processing complete. Attempted to apply {total_updates} lab completion updates."
             return jsonify({"message": success_message, "details": final_log})
 
